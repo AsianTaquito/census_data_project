@@ -31,11 +31,11 @@ from sklearn.svm import LinearSVC
 def load_data():
     print("...Loading dataset from OpenML...")
     df = fetch_openml('adult', version=2, as_frame=True).frame
-    print("✅ Dataset loaded successfully.")
+    print("Dataset loaded successfully.")
     return df
 
 
-# Dataset Info
+# Dataset Exploration
 def explore_dataframe(df):
     print("\n--- Dataset Overview ---")
     print("Shape:", df.shape)
@@ -51,67 +51,43 @@ def explore_dataframe(df):
     print(df['class'].value_counts(normalize=True))
 
 
-# Visualizations
-def plot_eda(df):
-    sns.set(style='whitegrid')
-
-    # Age distribution
-    plt.figure(figsize=(14, 5))
-    plt.subplot(1, 2, 1)
-    sns.histplot(df['age'].dropna(), bins=30, kde=True, color='skyblue')
-    plt.title('Age Distribution')
-
-    # Income distribution
-    plt.subplot(1, 2, 2)
-    sns.countplot(x='class', data=df, color='lightcoral')
-    plt.title('Income Distribution')
-    plt.tight_layout()
-    plt.show()
-
-    # Education count
-    plt.figure(figsize=(10, 6))
-    sns.countplot(y='education', data=df,
-                  order=df['education'].value_counts().index,
-                  palette='viridis')
-    plt.title('Education Levels')
-    plt.tight_layout()
-    plt.show()
-
-    # Gender pie chart
-    plt.figure(figsize=(6, 5))
-    df['sex'].value_counts().plot.pie(autopct='%1.1f%%',
-                                      startangle=90,
-                                      colors=['#66b3ff', '#99ff99'])
-    plt.ylabel('')
-    plt.title('Gender Distribution')
-    plt.tight_layout()
-    plt.show()
-
-    # Correlation (numeric features)
-    numeric_cols = df.select_dtypes(exclude=['object']).columns
-    corr = df[numeric_cols].apply(lambda x: (x - x.mean()) / x.std()).corr()
-    plt.figure(figsize=(8, 6))
-    sns.heatmap(corr, annot=True, fmt='.2f', cmap='coolwarm')
-    plt.title('Correlation (numeric features)')
-    plt.tight_layout()
-    plt.show()
-
-
-# Preprocessing
+# Data Preprocessing
+#Data cleaning & preprocessing
 def preprocess_data(df):
     df = df.copy()
     df['class'] = df['class'].astype(str).str.strip()
-    y = df['class'].apply(lambda x: 1 if x.startswith('>50') else 0)
 
+    # Target variable
+    y = df['class'].apply(lambda x: 1 if x.startswith('>50') else 0)
     X = df.drop('class', axis=1)
 
-    categorical_cols = X.select_dtypes(include=['object']).columns.tolist()
-    numeric_cols = X.select_dtypes(exclude=['object']).columns.tolist()
+    print("\n--- BEFORE PREPROCESSING ---")
+    print(X.dtypes)
+    print("\nPreview of data:")
+    print(X.head())
 
-    print('\n--- Preprocessing Summary ---')
-    print('Numeric columns:', numeric_cols)
-    print('Categorical columns:', categorical_cols)
+    #category detection
+    categorical_cols = []
+    numeric_cols = []
 
+    for col in X.columns:
+        # If pandas detects as object or string dtype
+        if X[col].dtype == 'object':
+            categorical_cols.append(col)
+        # If column has non-numeric entries even though dtype says numeric
+        elif X[col].apply(lambda v: isinstance(v, str)).any():
+            categorical_cols.append(col)
+        # If column has small number of unique values (likely categorical)
+        elif X[col].nunique() < 20:
+            categorical_cols.append(col)
+        else:
+            numeric_cols.append(col)
+
+    print("\n--- COLUMN TYPE SUMMARY ---")
+    print(f"Numeric columns ({len(numeric_cols)}): {numeric_cols}")
+    print(f"Categorical columns ({len(categorical_cols)}): {categorical_cols}")
+
+    # Define transformations
     numeric_transformer = Pipeline(steps=[
         ('imputer', SimpleImputer(strategy='median')),
         ('scaler', StandardScaler())
@@ -127,7 +103,73 @@ def preprocess_data(df):
         ('cat', categorical_transformer, categorical_cols)
     ])
 
+    #Fit and show post-processing summary
+    X_processed = preprocessor.fit_transform(X)
+
+    print("\n--- AFTER PREPROCESSING ---")
+    print(f"Transformed feature matrix shape: {X_processed.shape}")
+
+    cat_features = preprocessor.named_transformers_['cat']['onehot'].get_feature_names_out(categorical_cols)
+    all_features = numeric_cols + cat_features.tolist()
+    print(f"Total processed features: {len(all_features)}")
+    print("Sample feature names:", all_features[:15])
+
     return X, y, preprocessor
+
+
+# Visualization
+def visualization(df):
+    # Visualization
+    print("\n...Generating data visualizations...")
+
+    # Age distribution
+    plt.figure(figsize=(8, 5))
+    sns.histplot(df['age'], bins=30, kde=True)
+    plt.title("Age Distribution")
+    plt.xlabel("Age")
+    plt.tight_layout
+    plt.show()
+
+    plt.figure(figsize=(6, 4))
+    sns.countplot(x="class", data=df, palette="pastel")
+    plt.title("Income Class Distribution", fontsize=14)
+    plt.xlabel("Income Category")
+    plt.tight_layout()
+    plt.show()
+
+    # Education Level Distribution
+    plt.figure(figsize=(8, 5))
+    sns.countplot(
+        y="education",
+        data=df,
+        order=df["education"].value_counts().index,
+        palette="muted"
+    )
+    plt.title("Education Level Distribution", fontsize=14)
+    plt.ylabel("Education Level")
+    plt.tight_layout()
+    plt.show()
+
+    # Gender Distribution
+    plt.figure(figsize=(5, 5))
+    df["sex"].value_counts().plot.pie(autopct='%1.1f%%', startangle=90, colors=['#66b3ff', '#99ff99'])
+    plt.title("Gender Distribution", fontsize=14)
+    plt.ylabel("")
+    plt.tight_layout()
+    plt.show()
+
+    # Correlation Heatmap (Numeric Features Only)
+    numeric_cols = df.select_dtypes(include=['int64', 'float64']).columns
+
+    if not numeric_cols.empty:
+        plt.figure(figsize=(8, 6))
+        corr = df[numeric_cols].corr()
+        sns.heatmap(corr, annot=True, fmt='.2f', cmap="coolwarm", square=True)
+        plt.title("Correlation Heatmap (Numeric Features)", fontsize=14)
+        plt.tight_layout()
+        plt.show()
+    else:
+        print("No numeric columns found for correlation heatmap.")
 
 
 # Model Training & Evaluation
@@ -199,7 +241,7 @@ def train_and_evaluate(X_train, X_test, y_train, y_test, preprocessor):
 def main():
     df = load_data()
     explore_dataframe(df)
-    plot_eda(df)
+    visualization(df)
 
     X, y, preprocessor = preprocess_data(df)
 
@@ -214,3 +256,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
