@@ -51,7 +51,6 @@ def explore_dataframe(df):
     print(df['class'].value_counts(normalize=True))
 
 
-# Data Preprocessing
 #Data cleaning & preprocessing
 def preprocess_data(df):
     df = df.copy()
@@ -183,7 +182,7 @@ def train_and_evaluate(X_train, X_test, y_train, y_test, preprocessor):
     models = {
         'kNN': KNeighborsClassifier(n_neighbors=5),
         'Decision Tree': DecisionTreeClassifier(random_state=42, max_depth=8),
-        'LinearSVC': LinearSVC(max_iter=5000, random_state=42, class_weight='balanced')
+        #'LinearSVC': LinearSVC(max_iter=5000, random_state=42, class_weight='balanced')
     }
 
     results = []
