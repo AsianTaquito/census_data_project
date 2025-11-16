@@ -25,6 +25,7 @@ from sklearn.metrics import (
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import LinearSVC
+from sklearn.neural_network import MLPClassifier
 
 
 # Load Dataset
@@ -178,12 +179,22 @@ def timed_fit(pipeline, X_train, y_train):
     return time.time() - start
 
 
-def train_and_evaluate(X_train, X_test, y_train, y_test, preprocessor):
+def train_and_evaluate(X_train, X_test, y_train, y_test, preprocessor, include_nn=True):
     models = {
         'kNN': KNeighborsClassifier(n_neighbors=5),
         'Decision Tree': DecisionTreeClassifier(random_state=42, max_depth=8),
         #'LinearSVC': LinearSVC(max_iter=5000, random_state=42, class_weight='balanced')
     }
+    
+    # Add neural network models if requested
+    if include_nn:
+        models.update({
+            'NN: 1 Layer (20)': MLPClassifier(hidden_layer_sizes=(20,), max_iter=300, random_state=42),
+            'NN: Medium (50,25)': MLPClassifier(hidden_layer_sizes=(50, 25), max_iter=400, random_state=42),
+            'NN: Large (256,128,64)': MLPClassifier(hidden_layer_sizes=(256, 128, 64), max_iter=600, random_state=42),
+            'NN: Lower LR': MLPClassifier(hidden_layer_sizes=(50, 25), learning_rate_init=0.001, max_iter=400, random_state=42),
+            'NN: More Epochs': MLPClassifier(hidden_layer_sizes=(50, 25), max_iter=800, random_state=42)
+        })
 
     results = []
 
@@ -248,11 +259,11 @@ def main():
         X, y, test_size=0.2, random_state=42, stratify=y
     )
 
-    results_df = train_and_evaluate(X_train, X_test, y_train, y_test, preprocessor)
+    # Train all models (traditional + neural networks)
+    results_df = train_and_evaluate(X_train, X_test, y_train, y_test, preprocessor, include_nn=True)
     results_df.to_csv('model_results.csv', index=False)
     print('\nResults saved to model_results.csv')
 
 
 if __name__ == '__main__':
     main()
-
