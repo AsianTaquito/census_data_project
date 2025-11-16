@@ -189,8 +189,8 @@ def train_and_evaluate(X_train, X_test, y_train, y_test, preprocessor, include_n
             'NN: 1 Layer (20)': MLPClassifier(hidden_layer_sizes=(20,), max_iter=300, random_state=42),
             'NN: 2 layers (50,25)': MLPClassifier(hidden_layer_sizes=(50, 25), max_iter=400, random_state=42),
             'NN: 3 layers (256,128,64)': MLPClassifier(hidden_layer_sizes=(256, 128, 64), max_iter=600, random_state=42),
-            'NN: Slow Learning Rate': MLPClassifier(hidden_layer_sizes=(50, 25), learning_rate_init=0.001, max_iter=400, random_state=42),
-            'NN: More Training': MLPClassifier(hidden_layer_sizes=(50, 25), max_iter=800, random_state=42)
+            'NN: Slow Learning Rate': MLPClassifier(hidden_layer_sizes=(50, 25), learning_rate_init=0.00001, max_iter=400, random_state=42),
+            'NN: More Training': MLPClassifier(hidden_layer_sizes=(50, 25), max_iter=1500, random_state=42)
         })
 
     results = []
@@ -225,14 +225,15 @@ def train_and_evaluate(X_train, X_test, y_train, y_test, preprocessor, include_n
             'Train Time (s)': round(train_time, 2)
         })
 
+    #comparison plot
     results_df = pd.DataFrame(results)
     print('\n--- MODEL PERFORMANCE ---')
     print(results_df.sort_values(by='F1-macro', ascending=False))
 
-    # Comparison plot
+    #drop train time to make seperate plot
     metrics_only = results_df.drop(columns=['Train Time (s)'])
 
-    melted = results_df.melt(id_vars='Model', var_name='Metric', value_name='Score')
+    melted = metrics_only.melt(id_vars='Model', var_name='Metric', value_name='Score')
     plt.figure(figsize=(12, 6))
     sns.barplot(data=melted, x='Metric', y='Score', hue='Model', palette='coolwarm')
     plt.title('Model Comparison on Adult Income Dataset')
@@ -262,7 +263,7 @@ def main():
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=y
     )
-    results_df = train_and_evaluate(X_train, X_test, y_train, y_test, preprocessor, include_nn=False)
+    results_df = train_and_evaluate(X_train, X_test, y_train, y_test, preprocessor)
     results_df.to_csv('model_results.csv', index=False)
     print('\nResults saved to model_results.csv')
 
