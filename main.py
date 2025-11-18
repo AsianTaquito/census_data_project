@@ -186,11 +186,11 @@ def train_and_evaluate(X_train, X_test, y_train, y_test, preprocessor, include_n
     # neural network
     if include_nn:
         models.update({
-            'NN: 1 Layer (20)': MLPClassifier(hidden_layer_sizes=(20,), max_iter=300, random_state=42),
-            'NN: 2 layers (50,25)': MLPClassifier(hidden_layer_sizes=(50, 25), max_iter=400, random_state=42),
-            'NN: 3 layers (256,128,64)': MLPClassifier(hidden_layer_sizes=(256, 128, 64), max_iter=600, random_state=42),
-            'NN: Slow Learning Rate': MLPClassifier(hidden_layer_sizes=(50, 25), learning_rate_init=0.00001, max_iter=400, random_state=42),
-            'NN: More Training': MLPClassifier(hidden_layer_sizes=(50, 25), max_iter=1500, random_state=42)
+            'NN: 1 Layer (50)': MLPClassifier(hidden_layer_sizes=(50), max_iter=500, random_state=42),
+            'NN: 2 layers (100, 50)': MLPClassifier(hidden_layer_sizes=(100, 50), max_iter=500, random_state=42),
+            'NN: 3 layers (250,100,50)': MLPClassifier(hidden_layer_sizes=(250, 100, 50), max_iter=500, random_state=42),
+            'NN: Slow Learning Rate': MLPClassifier(hidden_layer_sizes=(100, 50), learning_rate_init=0.000001, max_iter=500, random_state=42),
+            'NN: Extensive Training': MLPClassifier(hidden_layer_sizes=(100, 50), max_iter=5000, random_state=42)
         })
 
     results = []
