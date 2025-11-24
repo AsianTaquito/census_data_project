@@ -37,10 +37,7 @@ def load_data():
 
 # Dataset Exploration
 def explore_dataframe(df):
-    print("\n--- Dataset Overview ---")
-    print("Shape:", df.shape)
-    print("\nFirst 5 rows:\n", df.head())
-
+    
     print("\n--- Data Info ---")
     print(df.info())
 
