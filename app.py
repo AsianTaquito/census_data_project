@@ -181,6 +181,16 @@ def cost_chart(results_df, color):
     return (points + labels).properties(height=400)
 
 
+def no_models():
+    """Why the model views are empty: missing results, or nothing selected."""
+    if not os.path.exists(models.RESULTS_CSV):
+        st.warning(f'No results yet - `{models.RESULTS_CSV}` is missing.')
+        st.code('python main.py --no-nn     # quick, two models\n'
+                'python main.py             # all seven', language='bash')
+    else:
+        st.info('Pick at least one model in the sidebar.')
+
+
 def main():
     theme = mode()
     colors, ramp = SERIES[theme], RAMP[theme]
@@ -189,36 +199,35 @@ def main():
     st.caption('UCI Census data, dissected by the features that move income, '
                'then held up against seven classifiers on the same 20% test split.')
 
-    results_df, curves = get_results()
-    if results_df is None:
-        st.warning(f'No results yet - `{models.RESULTS_CSV}` is missing.')
-        st.code('python main.py --no-nn     # quick, two models\n'
-                'python main.py             # all seven', language='bash')
-        st.stop()
-
     dissection = get_dissection()
     base_rate = dissection['base_rate']
+    results_df, curves = get_results()
 
-    all_models = list(results_df['Model'])
+    all_models = list(results_df['Model']) if results_df is not None else []
     with st.sidebar:
         st.header('Filters')
-        chosen = st.multiselect('Models', all_models, default=all_models)
-        st.caption('Applies to every chart and the table.')
-    if not chosen:
-        st.info('Pick at least one model in the sidebar.')
-        st.stop()
-    shown = results_df[results_df['Model'].isin(chosen)].reset_index(drop=True)
+        chosen = st.multiselect('Models', all_models, default=all_models,
+                                disabled=not all_models)
+        st.caption('Applies to the model charts and the table. '
+                   'The data views never change with the selection.')
+    # None means the model views have nothing to draw; the data views do not care
+    shown = (results_df[results_df['Model'].isin(chosen)].reset_index(drop=True)
+             if chosen else None)
 
-    best_f1 = shown.loc[shown['F1-macro'].idxmax()]
-    best_auc = shown.loc[shown['ROC-AUC'].idxmax()]
     c1, c2, c3, c4 = st.columns(4)
     c1.metric('Census records', f"{dissection['n_rows']:,}")
     c2.metric('Earn over $50K', f'{base_rate:.1%}',
               help=f'Always guessing <=50K scores {1 - base_rate:.1%}.')
-    c3.metric('Best F1-macro', f"{best_f1['F1-macro']:.3f}", best_f1['Model'],
-              delta_color='off')
-    c4.metric('Best ROC-AUC', f"{best_auc['ROC-AUC']:.3f}", best_auc['Model'],
-              delta_color='off')
+    if shown is None:
+        c3.metric('Best F1-macro', '-')
+        c4.metric('Best ROC-AUC', '-')
+    else:
+        best_f1 = shown.loc[shown['F1-macro'].idxmax()]
+        best_auc = shown.loc[shown['ROC-AUC'].idxmax()]
+        c3.metric('Best F1-macro', f"{best_f1['F1-macro']:.3f}", best_f1['Model'],
+                  delta_color='off')
+        c4.metric('Best ROC-AUC', f"{best_auc['ROC-AUC']:.3f}", best_auc['Model'],
+                  delta_color='off')
 
     tab_data, tab_models, tab_table = st.tabs(
         ['The data', 'The models', 'Full results'])
@@ -237,6 +246,13 @@ def main():
             f"Capital gains are the loudest single flag: "
             f"{dissection['gain_share']:.1%} of rows report one, and they are "
             f"{dissection['gain_lift']:+.1%} more likely to clear $50K than rows without.")
+
+    if shown is None:
+        with tab_models:
+            no_models()
+        with tab_table:
+            no_models()
+        return
 
     with tab_models:
         st.subheader('Every metric, every model')
