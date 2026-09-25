@@ -103,7 +103,9 @@ def metric_matrix(results_df, ramp):
         color=alt.condition(alt.datum.Rank > 0.55,
                             alt.value('white'), alt.value('black')),
     )
-    return (cells + text).properties(height=45 * len(m))
+    # Streamlit's fit autosize counts the axis inside `height`, so one row
+    # at 45px leaves no band left to read the numbers in
+    return (cells + text).properties(height=max(130, 45 * len(m)))
 
 
 def roc_chart(results_df, curves, colors):
